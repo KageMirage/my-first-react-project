@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  background-color: #FCF1DB;
+}
+
+h1, h2, h3, .accent-text {
+  font-family: 'Fraunces', serif;
+}
