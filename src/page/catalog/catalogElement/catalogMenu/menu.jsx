@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useProducts } from '../../../../data/allData/products';
 
@@ -12,14 +12,15 @@ function Menu() {
   const { applyCatalogFilters, resetCatalogFilters } = useProducts();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => ({
     category: searchParams.get('category') || '',
     color: searchParams.get('color') || '',
     min_price: searchParams.get('min_price') || '',
     max_price: searchParams.get('max_price') || '',
     material: searchParams.get('material') || ''
-  });
+  }));
 
+  // Синхронизация состояния фильтров с URL-параметрами
   useEffect(() => {
     const currentCategory = searchParams.get('category') || '';
     const currentColor = searchParams.get('color') || '';
@@ -35,54 +36,41 @@ function Menu() {
       max_price: currentMaxPrice
     });
 
-    const initialFilters = {};
-    if (currentCategory) initialFilters.category = currentCategory;
-    if (currentColor) initialFilters.color = currentColor;
-    if (currentMaterial) initialFilters.material = currentMaterial;
-    if (currentMinPrice) initialFilters.min_price = currentMinPrice;
-    if (currentMaxPrice) initialFilters.max_price = currentMaxPrice;
+    const activeFilters = {};
+    if (currentCategory) activeFilters.category = currentCategory;
+    if (currentColor) activeFilters.color = currentColor;
+    if (currentMaterial) activeFilters.material = currentMaterial;
+    if (currentMinPrice) activeFilters.min_price = currentMinPrice;
+    if (currentMaxPrice) activeFilters.max_price = currentMaxPrice;
 
-    if (Object.keys(initialFilters).length > 0) {
-      applyCatalogFilters(initialFilters);
+    if (Object.keys(activeFilters).length > 0) {
+      applyCatalogFilters(activeFilters);
     } else {
       resetCatalogFilters();
     }
-  }, [searchParams]);
+  }, [searchParams, applyCatalogFilters, resetCatalogFilters]);
 
   const handleChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Применение фильтров
   const handleApply = () => {
     const cleanFilters = {};
     const newParams = new URLSearchParams();
 
-    if (filters.category) {
-      cleanFilters.category = filters.category;
-      newParams.set('category', filters.category);
-    }
-    if (filters.color) {
-      cleanFilters.color = filters.color;
-      newParams.set('color', filters.color);
-    }
-    if (filters.material) {
-      cleanFilters.material = filters.material;
-      newParams.set('material', filters.material);
-    }
-    if (filters.min_price) {
-      cleanFilters.min_price = filters.min_price;
-      newParams.set('min_price', filters.min_price);
-    }
-    if (filters.max_price) {
-      cleanFilters.max_price = filters.max_price;
-      newParams.set('max_price', filters.max_price);
-    }
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        cleanFilters[key] = value;
+        newParams.set(key, value);
+      }
+    });
 
     setSearchParams(newParams);
     applyCatalogFilters(cleanFilters);
   };
 
-  // 4. При сбросе — очищаем все фильтры
+  // Сброс фильтров
   const handleReset = () => {
     const emptyFilters = {
       category: '',

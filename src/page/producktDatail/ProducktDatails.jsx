@@ -18,8 +18,16 @@ function ProducktDatails() {
         : [];
 
     const product = productsList.find((item) => String(item.id) === String(id));
+    
     if (product && product.category) {
-      setProductCategory(product.category);
+      // Извлекаем ID, если category передана как объект { id, name }
+      const categoryId = typeof product.category === 'object' 
+        ? product.category.id 
+        : product.category;
+
+      if (categoryId) {
+        setProductCategory(categoryId);
+      }
     }
   }, [id, catalogProducts]);
 

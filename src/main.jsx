@@ -1,23 +1,18 @@
 import { StrictMode } from 'react'
+import { Provider } from 'react-redux';
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom';
 import './index.css'
 import App from './App.jsx'
 
-import { CartProvider } from './data/allData/CartContext.jsx';
-import { ProductsProvider } from './data/allData/products.jsx';
-import { FavoritesProvider } from './data/allData/FavoriteCintext.jsx';
+import { store } from './data/allData/redux/store.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <CartProvider>
-        <ProductsProvider>
-          <FavoritesProvider>
-            <App />
-          </FavoritesProvider>
-        </ProductsProvider>
-      </CartProvider>
+      <Provider store={store}>
+        <App />
+      </Provider>
     </BrowserRouter>
   </StrictMode>,
 )

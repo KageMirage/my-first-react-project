@@ -2,10 +2,6 @@ import axios from 'axios';
 
 const CONTACT_API_URL = 'https://html008.pythonanywhere.com/api/v1/contact/';
 
-/**
- * Отправка формы обратной связи на бэкенд
- * @param {Object} contactData - Объекты формы: { full_name, phone, message }
- */
 export const sendContactForm = async (contactData) => {
   try {
     const response = await axios.post(CONTACT_API_URL, contactData, {

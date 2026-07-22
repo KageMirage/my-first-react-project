@@ -1,64 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useProducts } from '../../../data/allData/products';
-import { useFavorites } from '../../../data/allData/FavoriteCintext';
-import { useCart } from '../../../data/allData/CartContext';
+import { useDispatch, useSelector } from 'react-redux';
+
+// Экшены из слайсов
+import { addToCart, updateQuantity, removeFromCart } from '../../../data/allData/redux/addData/cartSlice';
+import { toggleFavorite } from '../../../data/allData/redux/favoriteSlice';
+
+// RTK Query хэндлер
+import { useGetProductByIdQuery } from '../../../data/allData/products';
 
 import defaultImg from '../../../assets/img/img2.png';
 
 function DetailProduct() {
   const { id } = useParams();
-  const { catalogProducts, catalogLoading, fetchProductById } = useProducts();
-  const { toggleFavorite, isFavorite } = useFavorites();
-  
-  const { cartItems, addToCart, updateQuantity, removeFromCart } = useCart();
+  const dispatch = useDispatch();
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // 1. Загрузка товара через RTK Query
+  const { data: product, isLoading: loading, error } = useGetProductByIdQuery(id);
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    async function loadProduct() {
-      setLoading(true);
-      setError(null);
-
-      const productsList = Array.isArray(catalogProducts)
-        ? catalogProducts
-        : Array.isArray(catalogProducts?.results)
-          ? catalogProducts.results
-          : [];
-
-      const foundProduct = productsList.find((item) => String(item.id) === String(id));
-      
-      if (foundProduct) {
-        if (isMounted) {
-          setProduct(foundProduct);
-          setLoading(false);
-        }
-      } else if (!catalogLoading) {
-        const { data: fetchedProduct, error: fetchError } = await fetchProductById(id);
-        
-        if (isMounted) {
-          if (fetchError) {
-            setError(fetchError);
-          } else {
-            setProduct(fetchedProduct);
-          }
-          setLoading(false);
-        }
-      } else if (isMounted) {
-        setLoading(catalogLoading);
-      }
-    }
-
-    loadProduct();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [id, catalogProducts, catalogLoading, fetchProductById]);
+  // 2. Достаем данные из Redux Store
+  const cartItems = useSelector((state) => state.cart?.cartItems || []);
+  const favoriteItems = useSelector((state) => state.favorites?.items || []);
 
   if (loading) {
     return (
@@ -68,15 +30,7 @@ function DetailProduct() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="w-full text-center py-20 text-red-500 font-sans bg-[#f9f3e5] min-h-screen">
-        Ошибка загрузки: {error}
-      </div>
-    );
-  }
-
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="w-full text-center py-20 font-sans bg-[#f9f3e5] min-h-screen">
         <p className="text-gray-500 text-lg mb-4">Товар не найден</p>
@@ -89,30 +43,35 @@ function DetailProduct() {
 
   const productImage = product.image || defaultImg;
   const productPrice = product.price ? parseInt(product.price) : 1199;
-  const productTitle = product.title || 'Кожанная куртка';
+  const productTitle = product.title || 'Кожаная куртка';
   const careInfo = product.care || 'деликатная машинная стирка';
   const composition = product.compound || product.composition || '80% кожа 20% полиэстер';
   const country = product.country || 'США';
-  const description = product.description || 'Кожаная куртка женская — стильная и универсальная модель, выполненная из мягкой экокожи.';
+  const description = product.description || 'Стильная и универсальная модель.';
 
-  const isFav = isFavorite(product.id);
+  // Проверка на Избранное
+  const isFav = favoriteItems.some((item) => String(item.id) === String(product.id));
 
-  const cartItem = cartItems?.find((item) => String(item.id) === String(product.id));
+  // Поиск товара в корзине
+  const cartItem = cartItems.find((item) => String(item.id) === String(product.id));
   const currentQuantity = cartItem ? cartItem.quantity : 0;
 
+  // Обработчик управления количеством
   const handleIncrease = () => {
     if (cartItem) {
-      updateQuantity(product.id, currentQuantity + 1);
+      // КЛЮЧЕВОЙ МОМЕНТ: Передаем productId
+      dispatch(updateQuantity({ productId: product.id, quantity: currentQuantity + 1 }));
     } else {
-      addToCart(product, 1);
+      // КЛЮЧЕВОЙ МОМЕНТ: Передаем { product, quantity }
+      dispatch(addToCart({ product, quantity: 1 }));
     }
   };
 
   const handleDecrease = () => {
     if (currentQuantity > 1) {
-      updateQuantity(product.id, currentQuantity - 1);
+      dispatch(updateQuantity({ productId: product.id, quantity: currentQuantity - 1 }));
     } else {
-      removeFromCart(product.id);
+      dispatch(removeFromCart(product.id));
     }
   };
 
@@ -132,7 +91,7 @@ function DetailProduct() {
           />
           <button
             type="button"
-            onClick={() => toggleFavorite(product)}
+            onClick={() => dispatch(toggleFavorite(product))}
             className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 transition-transform"
             aria-label={isFav ? "Удалить из избранного" : "Добавить в избранное"}
           >
@@ -159,12 +118,10 @@ function DetailProduct() {
               <span className="font-bold text-[#111111] uppercase">УХОД И СТИРКА</span>
               <span className="text-[#444444] lowercase">{careInfo}</span>
             </div>
-
             <div className="grid grid-cols-[130px_1fr] items-baseline">
               <span className="font-bold text-[#111111] uppercase">СОСТАВ</span>
               <span className="text-[#444444]">{composition}</span>
             </div>
-
             <div className="grid grid-cols-[130px_1fr] items-baseline">
               <span className="font-bold text-[#111111] uppercase">СТРАНА БРЕНДА</span>
               <span className="text-[#444444]">{country}</span>
@@ -190,7 +147,6 @@ function DetailProduct() {
                 type="button"
                 onClick={handleDecrease}
                 className="w-8 h-8 flex items-center justify-center text-lg font-bold hover:bg-black/20 rounded transition-colors cursor-pointer"
-                title="Уменьшить"
               >
                 −
               </button>
@@ -204,7 +160,6 @@ function DetailProduct() {
                 type="button"
                 onClick={handleIncrease}
                 className="w-8 h-8 flex items-center justify-center text-lg font-bold hover:bg-black/20 rounded transition-colors cursor-pointer"
-                title="Увеличить"
               >
                 +
               </button>
@@ -212,7 +167,7 @@ function DetailProduct() {
           ) : (
             <button
               type="button"
-              onClick={() => addToCart(product, 1)}
+              onClick={() => dispatch(addToCart({ product, quantity: 1 }))}
               className="w-48 h-11 bg-[#5b0000] hover:bg-[#400000] text-white text-xs font-medium tracking-wide transition-all duration-300 cursor-pointer text-center"
             >
               В корзину
@@ -220,7 +175,6 @@ function DetailProduct() {
           )}
 
         </div>
-
       </div>
     </div>
   );

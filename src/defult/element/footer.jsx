@@ -4,10 +4,16 @@ import whatsapp from '../svg/whatsapp.svg';
 import { Link } from 'react-router-dom';
 import phone from '../svg/phone.svg';
 import email from '../svg/email.svg';
-import { useCart } from '../../data/allData/CartContext';
+
+import { useDispatch } from 'react-redux';
+import { toggleCart } from '../../data/allData/redux/addData/cartSlice';
 
 function Footer() {
-    const { openCart } = useCart();
+    const dispatch = useDispatch();
+
+    const handleOpenCart = () => {
+        dispatch(toggleCart(true)); // Открываем корзину
+    };
 
     return (
         <footer className="bg-[#600000] text-white pt-12 pb-12 px-6 md:px-12 font-sans">
@@ -23,7 +29,7 @@ function Footer() {
                     <Link to="/favorite" className="hover:opacity-80 transition-opacity">Избранные</Link>
                     <button 
                         type="button" 
-                        onClick={openCart} 
+                        onClick={handleOpenCart} 
                         className="hover:opacity-80 transition-opacity cursor-pointer text-left md:text-center"
                     >
                         Корзина

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useFavorites } from '../../data/allData/FavoriteCintext';
-import { useCart } from '../../data/allData/CartContext';
+
+// 1. Импортируем хуки Redux и экшены
+import { useDispatch, useSelector } from 'react-redux';
+import { addToCart } from '../../data/allData/redux/addData/cartSlice';
+import { toggleFavorite } from '../../data/allData/redux/favoriteSlice'; // проверьте путь к слайсу избранного
 
 import img1 from '../../assets/img/img1.png';
 import img2 from '../../assets/img/img2.png';
@@ -12,16 +15,24 @@ import cartIcon from '../../assets/svg/cartIcon.svg';
 const fallbackImages = [img1, img2, img3, img4];
 
 function Favorites() {
-  const { favorites, toggleFavorite } = useFavorites();
-  const { addToCart } = useCart();
+  const dispatch = useDispatch();
+
+  // 2. Получаем список товаров в избранном из Redux Store
+  const favorites = useSelector((state) => state.favorites?.items || []);
   const [addedIds, setAddedIds] = useState({});
 
+  // Добавление товара в корзину через Redux
   const handleAddToCart = (product) => {
-    addToCart(product, 1);
+    dispatch(addToCart({ product, quantity: 1 }));
     setAddedIds((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
       setAddedIds((prev) => ({ ...prev, [product.id]: false }));
     }, 1000);
+  };
+
+  // Удаление/переключение товара в избранном через Redux
+  const handleToggleFavorite = (product) => {
+    dispatch(toggleFavorite(product));
   };
 
   return (
@@ -67,8 +78,8 @@ function Favorites() {
 
                   <button
                     type="button"
-                    onClick={() => toggleFavorite(product)}
-                    className="absolute top-3 right-3 md:top-4 md:right-4 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10"
+                    onClick={() => handleToggleFavorite(product)}
+                    className="absolute top-3 right-3 md:top-4 md:right-4 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10 cursor-pointer"
                     aria-label="Удалить из избранного"
                   >
                     <svg className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200" viewBox="0 0 24 24" fill="#6A0008" stroke="#6A0008" strokeWidth="2">
@@ -84,7 +95,7 @@ function Favorites() {
                   <button
                     type="button"
                     onClick={() => handleAddToCart(product)}
-                    className={`p-1.5 rounded-full transition-all duration-300 relative ${
+                    className={`p-1.5 rounded-full transition-all duration-300 relative cursor-pointer ${
                       isAdded ? 'bg-green-100 scale-125' : 'hover:opacity-60 active:scale-90'
                     }`}
                     aria-label="В корзину"

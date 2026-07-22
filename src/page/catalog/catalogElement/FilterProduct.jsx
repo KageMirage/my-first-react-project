@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { useProducts } from '../../../data/allData/products';
-import { useFavorites } from '../../../data/allData/FavoriteCintext';
-import { useCart } from '../../../data/allData/CartContext';
+import { useDispatch, useSelector } from 'react-redux';
+
+import { addToCart } from '../../../data/allData/redux/addData/cartSlice';
+import { toggleFavorite } from '../../../data/allData/redux/favoriteSlice';
+import { useGetProductsQuery } from '../../../data/allData/products';
 import { ProductSkeleton } from '../../sceleton/ProductSkeleton';
 
 import img1 from '../../../assets/img/img1.png';
@@ -13,31 +15,19 @@ import cartIcon from '../../../assets/svg/cartIcon.svg';
 
 const placeholderImages = [img1, img2, img3, img4];
 
-function FilterCatalogSkeleton({ count = 9 }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-8 w-full">
-      {Array.from({ length: count }).map((_, idx) => (
-        <ProductSkeleton key={idx} />
-      ))}
-    </div>
-  );
-}
-
 function FilterProduct() {
-  const { catalogProducts, catalogLoading, catalogError } = useProducts();
-  const { toggleFavorite, isFavorite } = useFavorites();
-  const { addToCart } = useCart();
+  const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
+
+  // Получаем товары через RTK Query
+  const { data: rawProducts = [], isLoading, error } = useGetProductsQuery();
+
+  // Достаем избранное
+  const favoriteItems = useSelector((state) => state.favorites?.items || []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [addedIds, setAddedIds] = useState({});
   const itemsPerPage = 9;
-
-  const rawProducts = Array.isArray(catalogProducts)
-    ? catalogProducts
-    : Array.isArray(catalogProducts?.results)
-      ? catalogProducts.results
-      : [];
 
   const minPriceParam = searchParams.get('min_price');
   const maxPriceParam = searchParams.get('max_price');
@@ -46,35 +36,28 @@ function FilterProduct() {
     setCurrentPage(1);
   }, [searchParams]);
 
+  // Добавление в корзину (формат строго соответствует cartSlice)
   const handleAddToCart = (product) => {
-    addToCart(product, 1);
+    dispatch(addToCart({ product, quantity: 1 }));
+
     setAddedIds((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
       setAddedIds((prev) => ({ ...prev, [product.id]: false }));
     }, 1000);
   };
 
+  // Фильтрация
   const filteredProducts = rawProducts.filter((product) => {
     const price = Number(product.price) || 0;
 
-    if (minPriceParam !== null && minPriceParam !== undefined) {
-      const trimmedMin = String(minPriceParam).trim();
-      if (trimmedMin !== '') {
-        const minNum = Number(trimmedMin);
-        if (!isNaN(minNum) && minNum > 0 && price < minNum) {
-          return false;
-        }
-      }
+    if (minPriceParam) {
+      const minNum = Number(minPriceParam);
+      if (!isNaN(minNum) && minNum > 0 && price < minNum) return false;
     }
 
-    if (maxPriceParam !== null && maxPriceParam !== undefined) {
-      const trimmedMax = String(maxPriceParam).trim();
-      if (trimmedMax !== '') {
-        const maxNum = Number(trimmedMax);
-        if (!isNaN(maxNum) && maxNum > 0 && price > maxNum) {
-          return false;
-        }
-      }
+    if (maxPriceParam) {
+      const maxNum = Number(maxPriceParam);
+      if (!isNaN(maxNum) && maxNum > 0 && price > maxNum) return false;
     }
 
     return true;
@@ -86,20 +69,19 @@ function FilterProduct() {
     currentPage * itemsPerPage
   );
 
-  // ЕСЛИ ИДЕТ ЗАГРУЗКА КАТАЛОГА — ПОКАЗЫВАЕМ СЕТКУ СКЕЛЕТОНОВ
-  if (catalogLoading) {
-    return <FilterCatalogSkeleton count={itemsPerPage} />;
-  }
-
-  if (catalogError) {
+  if (isLoading) {
     return (
-      <div className="w-full text-center py-20 text-red-500 font-sans">
-        Ошибка загрузки: {typeof catalogError === 'object' ? JSON.stringify(catalogError) : catalogError}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-8 w-full">
+        {Array.from({ length: itemsPerPage }).map((_, idx) => (
+          <ProductSkeleton key={idx} />
+        ))}
       </div>
     );
   }
 
-  const isInitialState = rawProducts.length === 0;
+  if (error) {
+    return <div className="w-full text-center py-20 text-red-500 font-sans">Ошибка загрузки товаров.</div>;
+  }
 
   return (
     <div className="w-full font-sans">
@@ -108,7 +90,9 @@ function FilterProduct() {
           {currentItems.map((product, index) => {
             const fallbackImage = placeholderImages[index % placeholderImages.length];
             const productImage = product.image || fallbackImage;
-            const isFav = isFavorite(product.id);
+            
+            // Безопасная проверка избранного
+            const isFav = favoriteItems.some((item) => String(item.id) === String(product.id));
             const isAdded = addedIds[product.id];
 
             return (
@@ -128,9 +112,8 @@ function FilterProduct() {
                   
                   <button 
                     type="button" 
-                    onClick={() => toggleFavorite(product)}
-                    className="absolute top-3 right-3 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10" 
-                    aria-label={isFav ? "Удалить из избранного" : "Добавить в избранное"}
+                    onClick={() => dispatch(toggleFavorite(product))}
+                    className="absolute top-3 right-3 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10 cursor-pointer"
                   >
                     <svg 
                       className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200" 
@@ -152,10 +135,9 @@ function FilterProduct() {
                   <button 
                     type="button" 
                     onClick={() => handleAddToCart(product)}
-                    className={`p-1.5 rounded-full transition-all duration-300 relative ${
+                    className={`p-1.5 rounded-full transition-all duration-300 relative cursor-pointer ${
                       isAdded ? 'bg-green-100 scale-125' : 'hover:opacity-60 active:scale-90'
                     }`}
-                    aria-label="В корзину"
                   >
                     <img src={cartIcon} alt="Корзина" className="w-5 h-5" />
                     {isAdded && (
@@ -176,41 +158,23 @@ function FilterProduct() {
         </div>
       ) : (
         <div className="text-center py-20 text-gray-400 font-sans">
-          {isInitialState
-            ? "Товары отсутствуют."
-            : "Товары не найдены в данном ценовом диапазоне."}
+          Товары не найдены.
         </div>
       )}
 
       {totalPages > 1 && (
         <div className="flex justify-end items-center gap-3 mt-12 text-xs text-[#1a1a1a] tracking-wider">
-          {Array.from({ length: totalPages }).map((_, idx) => {
-            const pageNum = idx + 1;
-            const formattedNum = pageNum < 10 ? `0${pageNum}` : pageNum;
-            const isActive = pageNum === currentPage;
-
-            return (
-              <button
-                key={pageNum}
-                onClick={() => setCurrentPage(pageNum)}
-                className={`pb-0.5 transition-all cursor-pointer ${
-                  isActive 
-                    ? 'border-b border-[#1a1a1a] font-bold' 
-                    : 'text-gray-400 hover:text-black'
-                }`}
-              >
-                {formattedNum}
-              </button>
-            );
-          })}
-
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="hover:opacity-60 disabled:opacity-30 cursor-pointer ml-1"
-          >
-            &gt;
-          </button>
+          {Array.from({ length: totalPages }).map((_, idx) => (
+            <button
+              key={idx + 1}
+              onClick={() => setCurrentPage(idx + 1)}
+              className={`pb-0.5 transition-all cursor-pointer ${
+                idx + 1 === currentPage ? 'border-b border-[#1a1a1a] font-bold' : 'text-gray-400 hover:text-black'
+              }`}
+            >
+              {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
+            </button>
+          ))}
         </div>
       )}
     </div>

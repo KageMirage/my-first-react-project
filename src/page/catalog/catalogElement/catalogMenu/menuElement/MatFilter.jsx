@@ -11,15 +11,23 @@ function MatFilter({ selectedMaterial, onChange }) {
       ? products.results 
       : [];
 
-  const allMaterials = productsList.map((p) => p.material).filter(Boolean);
+  // Поддерживаем как единичный material, так и массив materials
+  const allMaterials = productsList
+    .flatMap((p) => p?.materials || p?.material || [])
+    .filter(Boolean);
 
+  // Формируем список уникальных материалов
   const uniqueMaterials = Array.from(
-    new Map(allMaterials.map((mat) => [mat.id, mat])).values()
+    new Map(
+      allMaterials.map((mat) => {
+        const id = typeof mat === 'object' ? mat?.id : mat;
+        return [id, mat];
+      })
+    ).values()
   );
 
   return (
     <div className="py-3 border-y border-[#1a1a1a]/20 font-sans">
-      
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="flex justify-between items-center cursor-pointer select-none py-1 mb-2"
@@ -33,23 +41,25 @@ function MatFilter({ selectedMaterial, onChange }) {
       </div>
 
       {isOpen && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
           {uniqueMaterials.length > 0 ? (
             uniqueMaterials.map((mat) => {
-              const isChecked = selectedMaterial === mat.id;
+              const matId = typeof mat === 'object' ? mat?.id : mat;
+              const matTitle = typeof mat === 'object' ? (mat?.title || mat?.name) : mat;
+              const isChecked = selectedMaterial !== '' && String(selectedMaterial) === String(matId);
 
               return (
                 <label 
-                  key={mat.id} 
+                  key={matId} 
                   className="flex items-center gap-2 cursor-pointer text-xs uppercase tracking-wide hover:opacity-75 transition-opacity"
                 >
                   <input
                     type="checkbox"
                     checked={isChecked}
-                    onChange={() => onChange(isChecked ? '' : mat.id)}
-                    className="w-3.5 h-3.5 accent-[#5c0000] cursor-pointer"
+                    onChange={() => onChange(isChecked ? '' : matId)}
+                    className="w-3.5 h-3.5 accent-[#5c0000] cursor-pointer shrink-0"
                   />
-                  <span>{mat.title}</span>
+                  <span className="truncate">{matTitle}</span>
                 </label>
               );
             })
@@ -58,7 +68,6 @@ function MatFilter({ selectedMaterial, onChange }) {
           )}
         </div>
       )}
-
     </div>
   );
 }

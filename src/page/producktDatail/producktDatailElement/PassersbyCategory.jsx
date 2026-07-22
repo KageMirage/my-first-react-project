@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
+
+// 1. Импортируем хуки Redux и экшены корзины и избранного
+import { useDispatch, useSelector } from 'react-redux';
+import { addToCart } from '../../../data/allData/redux/addData/cartSlice';
+import { toggleFavorite } from '../../../data/allData/redux/favoriteSlice'; // Проверьте путь к слайсу избранного
+
 import { useProducts } from '../../../data/allData/products.jsx';
-import { useFavorites } from '../../../data/allData/FavoriteCintext.jsx';
 
 import img1 from '../../../assets/img/img1.png';
 import img2 from '../../../assets/img/img2.png';
@@ -10,14 +15,19 @@ import img4 from '../../../assets/img/img4.png';
 
 function PassersbyCategory({ productCategory = 8 }) {
   const { id: currentProductId } = useParams();
+  const dispatch = useDispatch();
+
+  // 2. Получаем список избранного из Redux store
+  const favoriteItems = useSelector((state) => state.favorites?.items || []);
+
   const { fetchFilteredProducts } = useProducts();
-  const { toggleFavorite, isFavorite } = useFavorites();
 
   const [displayedProducts, setDisplayedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
+  const [addedIds, setAddedIds] = useState({}); // Для индикации добавления
   const scrollContainerRef = useRef(null);
 
   const fallbackImages = [img1, img2, img3, img4];
@@ -53,6 +63,24 @@ function PassersbyCategory({ productCategory = 8 }) {
     };
   }, [fetchFilteredProducts, categoryId, currentProductId]);
 
+  // Обработчик добавления в корзину
+  const handleAddToCart = (product) => {
+    dispatch(addToCart({ product, quantity: 1 }));
+    setAddedIds((prev) => ({ ...prev, [product.id]: true }));
+    setTimeout(() => {
+      setAddedIds((prev) => ({ ...prev, [product.id]: false }));
+    }, 1000);
+  };
+
+  // Обработчик переключения состояния избранного
+  const handleToggleFavorite = (product) => {
+    dispatch(toggleFavorite(product));
+  };
+
+  // Проверка наличия товара в избранном
+  const checkIsFavorite = (productId) => {
+    return favoriteItems.some((item) => String(item.id) === String(productId));
+  };
 
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
@@ -109,7 +137,8 @@ function PassersbyCategory({ productCategory = 8 }) {
               const price = product.price ? Math.floor(Number(product.price)) : 3990;
               const brand = product.title || product.brand || 'Stone Island';
 
-              const isFav = isFavorite(product.id);
+              const isFav = checkIsFavorite(product.id);
+              const isAdded = addedIds[product.id];
 
               return (
                 <div
@@ -132,8 +161,8 @@ function PassersbyCategory({ productCategory = 8 }) {
 
                     <button
                       type="button"
-                      onClick={() => toggleFavorite(product)}
-                      className="absolute top-3 right-3 md:top-4 md:right-4 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10"
+                      onClick={() => handleToggleFavorite(product)}
+                      className="absolute top-3 right-3 md:top-4 md:right-4 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10 cursor-pointer"
                       aria-label={isFav ? "Удалить из избранного" : "Добавить в избранное"}
                     >
                       <svg
@@ -155,12 +184,21 @@ function PassersbyCategory({ productCategory = 8 }) {
 
                     <button
                       type="button"
-                      className="text-black p-1 transition-opacity duration-200 hover:opacity-60"
+                      onClick={() => handleAddToCart(product)}
+                      className={`p-1.5 rounded-full transition-all duration-300 relative cursor-pointer ${
+                        isAdded ? 'bg-green-100 scale-125' : 'hover:opacity-60 active:scale-90'
+                      }`}
                       aria-label="В корзину"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                       </svg>
+                      {isAdded && (
+                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                        </span>
+                      )}
                     </button>
                   </div>
 

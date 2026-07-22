@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../../data/allData/CartContext';
+
+// 1. Импортируем Redux хуки и экшены/селекторы
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleCart } from '../../data/allData/redux/addData/cartSlice';
+import { selectTotalCount } from '../../data/allData/redux/addData/cartSelectors';
 
 import logo from '../../assets/svg/logo.svg';
 import favorite from '../svg/favorite.svg';
@@ -10,9 +14,18 @@ import leave from '../../assets/svg/leave.svg';
 
 function Header() {
     const [isOpen, setIsOpen] = useState(false);
-    const { openCart, cartItems } = useCart();
+    
+    // 2. Инициализируем dispatch и забираем данные из Redux
+    const dispatch = useDispatch();
+    
+    // Если селектора нет, можно так: 
+    // const cartItems = useSelector((state) => state.cart.cartItems);
+    // const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+    const totalCount = useSelector(selectTotalCount);
 
-    const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+    const handleOpenCart = () => {
+        dispatch(toggleCart(true));
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -29,7 +42,7 @@ function Header() {
     const handleOpenCartFromMobile = () => {
         setIsOpen(false);
         requestAnimationFrame(() => {
-            openCart();
+            handleOpenCart();
         });
     };
 
@@ -48,7 +61,7 @@ function Header() {
                     <Link to="/catalog" className="transition-opacity hover:opacity-75">Каталог</Link>
                     <button
                         type="button"
-                        onClick={openCart}
+                        onClick={handleOpenCart}
                         className="transition-opacity hover:opacity-75 cursor-pointer"
                     >
                         Корзина
@@ -61,10 +74,9 @@ function Header() {
                             <img src={favorite} alt="Favorite" className="h-6 w-6" />
                         </Link>
 
-
                         <button
                             type="button"
-                            onClick={openCart}
+                            onClick={handleOpenCart}
                             className="relative transition-opacity hover:opacity-75 cursor-pointer"
                         >
                             <img src={cart} alt="Cart" className="h-6 w-6" />
@@ -108,7 +120,7 @@ function Header() {
                             <button
                                 type="button"
                                 onClick={handleOpenCartFromMobile}
-                                className="border-b border-black/20 py-4 text-left font-medium tracking-widest text-[16px] uppercase"
+                                className="border-b border-black/20 py-4 text-left font-medium tracking-widest text-[16px] uppercase cursor-pointer"
                             >
                                 Корзина {totalCount > 0 && `(${totalCount})`}
                             </button>

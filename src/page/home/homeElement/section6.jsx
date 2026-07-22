@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { sendContactForm } from '../../../data/allData/contact'
+import { sendContactForm } from '../../../data/allData/contact';
 import image from '../svg/s6.svg';
 
 function Section6() {

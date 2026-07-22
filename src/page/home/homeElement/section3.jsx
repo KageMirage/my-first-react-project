@@ -1,8 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useProducts } from '../../../data/allData/products.jsx';
-import { useFavorites } from '../../../data/allData/FavoriteCintext.jsx';
-import { useCart } from '../../../data/allData/CartContext.jsx';
+
+// 1. Импортируем Redux dispatch, selector и экшены
+import { useDispatch, useSelector } from 'react-redux';
+import { addToCart } from '../../../data/allData/redux/addData/cartSlice.jsx';
+import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice.jsx
+
+// 2. Импортируем RTK Query хук вместо устаревшего useProducts
+import { useGetFilteredProductsQuery } from '../../../data/allData/products';
 import { ProductSectionSkeleton } from '../../sceleton/ProductSkeleton.jsx';
 
 import img1 from '../../../assets/img/img1.png';
@@ -12,14 +17,11 @@ import img4 from '../../../assets/img/img4.png';
 import cartIcon from '../../../assets/svg/cartIcon.svg';
 
 function Section3({ productCategory = 2 }) {
-    const { fetchFilteredProducts } = useProducts();
-    const { toggleFavorite, isFavorite } = useFavorites();
-    const { addToCart } = useCart();
+    const dispatch = useDispatch();
 
-    const [displayedProducts, setDisplayedProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    
+    // Достаем список избранного из Redux Store
+    const favoriteItems = useSelector((state) => state.favorites?.items || []);
+
     const [addedIds, setAddedIds] = useState({});
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollContainerRef = useRef(null);
@@ -27,40 +29,31 @@ function Section3({ productCategory = 2 }) {
     const fallbackImages = [img1, img2, img3, img4];
     const categoryId = typeof productCategory === 'object' ? productCategory?.id : productCategory;
 
-    useEffect(() => {
-        let isMounted = true;
+    // 3. Загружаем данные через RTK Query
+    const { data: rawData, isLoading: loading, error } = useGetFilteredProductsQuery({ category: categoryId || 2 });
 
-        async function loadNewArrivals() {
-            setLoading(true);
-            setError(null);
+    // Приводим полученные данные к массиву и берем первые 4 товара
+    const productsArray = Array.isArray(rawData) ? rawData : rawData?.results || [];
+    const displayedProducts = productsArray.slice(0, 4);
 
-            const { data, error: apiError } = await fetchFilteredProducts({ category: categoryId || 2 });
-
-            if (isMounted) {
-                if (apiError) {
-                    const errorMessage = typeof apiError === 'object' ? JSON.stringify(apiError) : apiError;
-                    setError(errorMessage);
-                } else {
-                    const items = data?.results || (Array.isArray(data) ? data : []);
-                    setDisplayedProducts(items.slice(0, 4));
-                }
-                setLoading(false);
-            }
-        }
-
-        loadNewArrivals();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [categoryId]);
-
+    // Добавление товара в корзину
     const handleAddToCart = (product) => {
-        addToCart(product, 1);
+        dispatch(addToCart({ product, quantity: 1 }));
+
         setAddedIds((prev) => ({ ...prev, [product.id]: true }));
         setTimeout(() => {
             setAddedIds((prev) => ({ ...prev, [product.id]: false }));
         }, 1000);
+    };
+
+    // Переключение избранного
+    const handleToggleFavorite = (product) => {
+        dispatch(toggleFavorite(product));
+    };
+
+    // Проверка наличия товара в избранном
+    const checkIsFavorite = (productId) => {
+        return favoriteItems.some((item) => String(item.id) === String(productId));
     };
 
     const handleScroll = () => {
@@ -93,7 +86,7 @@ function Section3({ productCategory = 2 }) {
                 <ProductSectionSkeleton count={4} />
             ) : error ? (
                 <div className="text-center py-12 text-red-600 px-4">
-                    Ошибка загрузки: {error}
+                    Ошибка загрузки: {typeof error === 'object' ? JSON.stringify(error) : error}
                 </div>
             ) : displayedProducts.length === 0 ? (
                 <p className="text-center py-10 text-gray-500">Новых товаров пока нет</p>
@@ -108,7 +101,7 @@ function Section3({ productCategory = 2 }) {
                             const defaultFallback = fallbackImages[index % fallbackImages.length];
                             const imageSrc = product.image || defaultFallback;
                             const price = product.price ? Math.floor(Number(product.price)) : 0;
-                            const isFav = isFavorite(product.id);
+                            const isFav = checkIsFavorite(product.id);
                             const isAdded = addedIds[product.id];
 
                             return (
@@ -128,8 +121,8 @@ function Section3({ productCategory = 2 }) {
 
                                         <button
                                             type="button"
-                                            onClick={() => toggleFavorite(product)}
-                                            className="absolute top-3 right-3 md:top-4 md:right-4 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10"
+                                            onClick={() => handleToggleFavorite(product)}
+                                            className="absolute top-3 right-3 md:top-4 md:right-4 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10 cursor-pointer"
                                             aria-label={isFav ? "Удалить из избранного" : "Добавить в избранное"}
                                         >
                                             <svg className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200" viewBox="0 0 24 24" fill={isFav ? "#6A0008" : "none"} stroke={isFav ? "#6A0008" : "#1a1a1a"} strokeWidth="2">

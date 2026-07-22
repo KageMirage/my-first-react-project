@@ -1,88 +1,43 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useApiData } from '../getData';
-import axios from 'axios';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-const ProductsContext = createContext(null);
+export const productsApi = createApi({
+  reducerPath: 'productsApi',
+  baseQuery: fetchBaseQuery({ baseUrl: 'https://html008.pythonanywhere.com/api/v1/' }),
+  endpoints: (builder) => ({
+    getProducts: builder.query({
+      query: () => 'products/',
+      transformResponse: (res) => res?.results || res || [],
+    }),
+    
+    getCategories: builder.query({
+      query: () => 'categories/',
+      transformResponse: (res) => res?.results || res || [],
+    }),
 
-export const ProductsProvider = ({ children }) => {
-  const { data: products, loading, error } = useApiData('https://html008.pythonanywhere.com/api/v1/products/');
-  const { data: categoriesData, loading: categoriesLoading } = useApiData('https://html008.pythonanywhere.com/api/v1/categories/');
-  const categories = categoriesData?.results || categoriesData || [];
+    getFilteredProducts: builder.query({
+      query: (filters = {}) => {
+        const searchParams = new URLSearchParams();
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            searchParams.append(key, val);
+          }
+        });
+        const queryString = searchParams.toString();
+        return queryString ? `products/?${queryString}` : 'products/';
+      },
+      transformResponse: (res) => res?.results || res || [],
+    }),
 
-  const [catalogProducts, setCatalogProducts] = useState([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  const [catalogError, setCatalogError] = useState(null);
+    getProductById: builder.query({
+      query: (id) => `products/${id}/`,
+    }),
+  }),
+});
 
-  const [filters, setFilters] = useState({});
-
-  const fetchFilteredProducts = useCallback(async (filterParams = {}) => {
-    const baseUrl = 'https://html008.pythonanywhere.com/api/v1/products/';
-    const searchParams = new URLSearchParams();
-
-    Object.entries(filterParams).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        searchParams.append(key, value);
-      }
-    });
-
-    const queryString = searchParams.toString();
-    const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-
-    try {
-      const res = await axios.get(finalUrl);
-      return { data: res.data, error: null };
-    } catch (err) {
-      return { data: null, error: err.message || 'Ошибка фильтрации' };
-    }
-  }, []);
-
-  const applyCatalogFilters = async (newFilters) => {
-    setFilters(newFilters);
-    setCatalogLoading(true);
-    setCatalogError(null);
-
-    const { data, error: apiError } = await fetchFilteredProducts(newFilters);
-
-    if (apiError) {
-      setCatalogError(apiError);
-    } else {
-      setCatalogProducts(data?.results || data || []);
-    }
-    setCatalogLoading(false);
-  };
-
-  const resetCatalogFilters = () => {
-    applyCatalogFilters({});
-  };
-
-  const fetchProductById = async (id) => {
-    try {
-      const res = await axios.get(`https://html008.pythonanywhere.com/api/v1/products/${id}/`);
-      return { data: res.data, error: null };
-    } catch (err) {
-      return { data: null, error: err.message || 'Ошибка загрузки товара' };
-    }
-  };
-
-  return (
-    <ProductsContext.Provider value={{ 
-      products, 
-      loading, 
-      error, 
-      categories,
-      categoriesLoading,
-      catalogProducts,
-      catalogLoading,
-      catalogError,
-      filters,
-      applyCatalogFilters,
-      resetCatalogFilters,
-      fetchFilteredProducts, 
-      fetchProductById     
-    }}>
-      {children}
-    </ProductsContext.Provider>
-  );
-};
-
-export const useProducts = () => useContext(ProductsContext);
+export const {
+  useGetProductsQuery,
+  useGetCategoriesQuery,
+  useGetFilteredProductsQuery,
+  useGetProductByIdQuery,
+  useLazyGetProductByIdQuery,
+} = productsApi;
