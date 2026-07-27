@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { useProducts } from '../../../../../data/allData/products';
+import { useGetFilteredProductsQuery } from '../../../../../data/allData/products';
 
 function ColorFilter({ selectedColor, onChange }) {
-  const { products } = useProducts();
+  const { data: rawData = [], isLoading } = useGetFilteredProductsQuery();
   const [isOpen, setIsOpen] = useState(true);
 
-  const productsList = Array.isArray(products) 
-    ? products 
-    : Array.isArray(products?.results) 
-      ? products.results 
+  const productsList = Array.isArray(rawData) 
+    ? rawData 
+    : Array.isArray(rawData?.results) 
+      ? rawData.results 
       : [];
 
   const allColors = productsList.flatMap((product) => product?.colors || []);
@@ -37,7 +37,9 @@ function ColorFilter({ selectedColor, onChange }) {
 
       {isOpen && (
         <div className="flex flex-wrap gap-2 mt-3">
-          {uniqueColors.length > 0 ? (
+          {isLoading ? (
+            <p className="text-xs text-gray-400">Загрузка цветов...</p>
+          ) : uniqueColors.length > 0 ? (
             uniqueColors.map((color) => {
               const isSelected = selectedColor === color.id;
 

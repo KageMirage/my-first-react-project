@@ -4,16 +4,13 @@ import { fetchInitialProducts, fetchCategories, fetchCatalog } from './productsS
 const productsSlice = createSlice({
   name: 'products',
   initialState: {
-    // Главные товары
     products: [],
     loading: false,
     error: null,
 
-    // Категории
     categories: [],
     categoriesLoading: false,
 
-    // Каталог и фильтры
     catalogProducts: [],
     catalogLoading: false,
     catalogError: null,
@@ -29,7 +26,6 @@ const productsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Initial Products
       .addCase(fetchInitialProducts.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -43,7 +39,6 @@ const productsSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Categories
       .addCase(fetchCategories.pending, (state) => {
         state.categoriesLoading = true;
       })
@@ -52,7 +47,6 @@ const productsSlice = createSlice({
         state.categories = action.payload;
       })
 
-      // Catalog Filtered
       .addCase(fetchCatalog.pending, (state) => {
         state.catalogLoading = true;
         state.catalogError = null;

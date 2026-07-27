@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
-import { useProducts } from '../../../../../data/allData/products';
+import { useGetFilteredProductsQuery } from '../../../../../data/allData/products';
 
 function MatFilter({ selectedMaterial, onChange }) {
-  const { products } = useProducts();
+  const { data: rawData = [], isLoading } = useGetFilteredProductsQuery();
   const [isOpen, setIsOpen] = useState(true);
 
-  const productsList = Array.isArray(products) 
-    ? products 
-    : Array.isArray(products?.results) 
-      ? products.results 
+  const productsList = Array.isArray(rawData) 
+    ? rawData 
+    : Array.isArray(rawData?.results) 
+      ? rawData.results 
       : [];
 
-  // Поддерживаем как единичный material, так и массив materials
   const allMaterials = productsList
     .flatMap((p) => p?.materials || p?.material || [])
     .filter(Boolean);
 
-  // Формируем список уникальных материалов
   const uniqueMaterials = Array.from(
     new Map(
       allMaterials.map((mat) => {
@@ -42,7 +40,9 @@ function MatFilter({ selectedMaterial, onChange }) {
 
       {isOpen && (
         <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-          {uniqueMaterials.length > 0 ? (
+          {isLoading ? (
+            <p className="text-xs text-gray-400">Загрузка материалов...</p>
+          ) : uniqueMaterials.length > 0 ? (
             uniqueMaterials.map((mat) => {
               const matId = typeof mat === 'object' ? mat?.id : mat;
               const matTitle = typeof mat === 'object' ? (mat?.title || mat?.name) : mat;

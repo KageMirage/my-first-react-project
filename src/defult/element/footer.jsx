@@ -12,7 +12,7 @@ function Footer() {
     const dispatch = useDispatch();
 
     const handleOpenCart = () => {
-        dispatch(toggleCart(true)); // Открываем корзину
+        dispatch(toggleCart(true));
     };
 
     return (

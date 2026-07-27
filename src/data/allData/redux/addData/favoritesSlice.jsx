@@ -5,7 +5,7 @@ const loadFavoritesFromStorage = () => {
     const saved = localStorage.getItem('favorites_products');
     return saved ? JSON.parse(saved) : [];
   } catch (e) {
-    console.error('Ошибка чтения favorites из localStorage:', e);
+    console.error('Ошибка чтения favorites:', e);
     return [];
   }
 };
@@ -18,7 +18,11 @@ const favoritesSlice = createSlice({
   reducers: {
     toggleFavorite: (state, action) => {
       const product = action.payload;
-      const index = state.items.findIndex((item) => item.id === product.id);
+      if (!product || product.id === undefined) return;
+
+      // Приводим ID к числу (как в корзине), чтобы исключить проблемы типов
+      const targetId = Number(product.id);
+      const index = state.items.findIndex((item) => Number(item.id) === targetId);
 
       if (index !== -1) {
         state.items.splice(index, 1);
@@ -26,11 +30,7 @@ const favoritesSlice = createSlice({
         state.items.push(product);
       }
 
-      try {
-        localStorage.setItem('favorites_products', JSON.stringify(state.items));
-      } catch (e) {
-        console.error('Ошибка записи favorites в localStorage:', e);
-      }
+      localStorage.setItem('favorites_products', JSON.stringify(state.items));
     },
     clearFavorites: (state) => {
       state.items = [];
@@ -41,3 +41,12 @@ const favoritesSlice = createSlice({
 
 export const { toggleFavorite, clearFavorites } = favoritesSlice.actions;
 export default favoritesSlice.reducer;
+
+
+export const selectFavoriteItems = (state) => state.favorites.items;
+
+export const selectFavoritesCount = (state) =>
+  state.favorites.items ? state.favorites.items.length : 0;
+
+export const selectIsFavorite = (productId) => (state) =>
+  state.favorites.items.some((item) => Number(item.id) === Number(productId));

@@ -3,8 +3,9 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { addToCart } from '../../../data/allData/redux/addData/cartSlice';
-import { toggleFavorite } from '../../../data/allData/redux/favoriteSlice';
-import { useGetProductsQuery } from '../../../data/allData/products';
+import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice';
+
+import { useGetFilteredProductsQuery } from '../../../data/allData/products';
 import { ProductSkeleton } from '../../sceleton/ProductSkeleton';
 
 import img1 from '../../../assets/img/img1.png';
@@ -19,24 +20,26 @@ function FilterProduct() {
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
 
-  // Получаем товары через RTK Query
-  const { data: rawProducts = [], isLoading, error } = useGetProductsQuery();
+  const minPriceParam = searchParams.get('min_price');
+  const maxPriceParam = searchParams.get('max_price');
+  const categoryParam = searchParams.get('category');
 
-  // Достаем избранное
+  const { data: rawData = [], isLoading, error } = useGetFilteredProductsQuery({
+    category: categoryParam || undefined,
+  });
+
+  const rawProducts = Array.isArray(rawData) ? rawData : rawData?.results || [];
+
   const favoriteItems = useSelector((state) => state.favorites?.items || []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [addedIds, setAddedIds] = useState({});
   const itemsPerPage = 9;
 
-  const minPriceParam = searchParams.get('min_price');
-  const maxPriceParam = searchParams.get('max_price');
-
   useEffect(() => {
     setCurrentPage(1);
   }, [searchParams]);
 
-  // Добавление в корзину (формат строго соответствует cartSlice)
   const handleAddToCart = (product) => {
     dispatch(addToCart({ product, quantity: 1 }));
 
@@ -46,7 +49,6 @@ function FilterProduct() {
     }, 1000);
   };
 
-  // Фильтрация
   const filteredProducts = rawProducts.filter((product) => {
     const price = Number(product.price) || 0;
 
@@ -80,7 +82,11 @@ function FilterProduct() {
   }
 
   if (error) {
-    return <div className="w-full text-center py-20 text-red-500 font-sans">Ошибка загрузки товаров.</div>;
+    return (
+      <div className="w-full text-center py-20 text-red-500 font-sans">
+        Ошибка загрузки товаров.
+      </div>
+    );
   }
 
   return (
@@ -90,9 +96,10 @@ function FilterProduct() {
           {currentItems.map((product, index) => {
             const fallbackImage = placeholderImages[index % placeholderImages.length];
             const productImage = product.image || fallbackImage;
-            
-            // Безопасная проверка избранного
-            const isFav = favoriteItems.some((item) => String(item.id) === String(product.id));
+
+            const isFav = favoriteItems.some(
+              (item) => String(item.id) === String(product.id)
+            );
             const isAdded = addedIds[product.id];
 
             return (
@@ -109,17 +116,18 @@ function FilterProduct() {
                       }}
                     />
                   </Link>
-                  
-                  <button 
-                    type="button" 
+
+                  <button
+                    type="button"
                     onClick={() => dispatch(toggleFavorite(product))}
                     className="absolute top-3 right-3 w-9 h-9 md:w-10 md:h-10 bg-white/80 hover:bg-white backdrop-blur-sm rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 z-10 cursor-pointer"
+                    aria-label={isFav ? "Удалить из избранного" : "Добавить в избранное"}
                   >
-                    <svg 
-                      className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200" 
-                      viewBox="0 0 24 24" 
-                      fill={isFav ? "#6A0008" : "none"} 
-                      stroke={isFav ? "#6A0008" : "#1a1a1a"} 
+                    <svg
+                      className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200"
+                      viewBox="0 0 24 24"
+                      fill={isFav ? '#6A0008' : 'none'}
+                      stroke={isFav ? '#6A0008' : '#1a1a1a'}
                       strokeWidth="2"
                     >
                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -131,13 +139,14 @@ function FilterProduct() {
                   <span className="font-semibold text-base text-[#1a1a1a]">
                     {product.price ? `${parseInt(product.price)} ₽` : '3990 ₽'}
                   </span>
-                  
-                  <button 
-                    type="button" 
+
+                  <button
+                    type="button"
                     onClick={() => handleAddToCart(product)}
                     className={`p-1.5 rounded-full transition-all duration-300 relative cursor-pointer ${
                       isAdded ? 'bg-green-100 scale-125' : 'hover:opacity-60 active:scale-90'
                     }`}
+                    aria-label="Добавить в корзину"
                   >
                     <img src={cartIcon} alt="Корзина" className="w-5 h-5" />
                     {isAdded && (
@@ -150,7 +159,7 @@ function FilterProduct() {
                 </div>
 
                 <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  {product.title || 'Stone Island'}
+                  {product.title || 'Товар'}
                 </p>
               </div>
             );
@@ -169,7 +178,9 @@ function FilterProduct() {
               key={idx + 1}
               onClick={() => setCurrentPage(idx + 1)}
               className={`pb-0.5 transition-all cursor-pointer ${
-                idx + 1 === currentPage ? 'border-b border-[#1a1a1a] font-bold' : 'text-gray-400 hover:text-black'
+                idx + 1 === currentPage
+                  ? 'border-b border-[#1a1a1a] font-bold'
+                  : 'text-gray-400 hover:text-black'
               }`}
             >
               {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}

@@ -1,6 +1,12 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart, updateQuantity, removeFromCart, checkoutCart, } from '../addData/cartSlice';
-import { selectCartItems, selectTotalPrice, selectTotalCount, selectCartLoading, selectCheckoutError, } from '../addData/cartSelectors';
+import { addToCart, updateQuantity, removeFromCart, checkoutCart } from './cartSlice';
+import {
+  selectCartItems,
+  selectTotalPrice,
+  selectTotalCount,
+  selectCartLoading,
+  selectCheckoutError,
+} from './cartSelectors';
 
 export function useCart() {
   const dispatch = useDispatch();

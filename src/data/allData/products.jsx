@@ -14,7 +14,7 @@ export const productsApi = createApi({
       transformResponse: (res) => res?.results || res || [],
     }),
 
-    getFilteredProducts: builder.query({
+    getFilteredProducts: builder.query({ 
       query: (filters = {}) => {
         const searchParams = new URLSearchParams();
         Object.entries(filters).forEach(([key, val]) => {

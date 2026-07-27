@@ -3,24 +3,18 @@ import { useParams } from 'react-router-dom';
 import DetailProduct from './producktDatailElement/DatailProduckt';
 import PassersbyCategory from './producktDatailElement/PassersbyCategory';
 import HomeButton from './producktDatailElement/Leave';
-import { useProducts } from '../../data/allData/products';
+
+import { useGetProductByIdQuery, useGetFilteredProductsQuery } from '../../data/allData/products';
 
 function ProducktDatails() {
   const { id } = useParams();
-  const { catalogProducts } = useProducts();
   const [productCategory, setProductCategory] = useState(8);
 
-  useEffect(() => {
-    const productsList = Array.isArray(catalogProducts)
-      ? catalogProducts
-      : Array.isArray(catalogProducts?.results)
-        ? catalogProducts.results
-        : [];
+  const { data: product } = useGetProductByIdQuery(id, { skip: !id });
 
-    const product = productsList.find((item) => String(item.id) === String(id));
-    
+
+  useEffect(() => {
     if (product && product.category) {
-      // Извлекаем ID, если category передана как объект { id, name }
       const categoryId = typeof product.category === 'object' 
         ? product.category.id 
         : product.category;
@@ -29,7 +23,7 @@ function ProducktDatails() {
         setProductCategory(categoryId);
       }
     }
-  }, [id, catalogProducts]);
+  }, [product]);
 
   return (
     <div>

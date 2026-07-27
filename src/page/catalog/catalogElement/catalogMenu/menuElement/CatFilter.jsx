@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useProducts } from '../../../../../data/allData/products';
+import { useGetCategoriesQuery } from '../../../../../data/allData/products';
 
 function CategoryFilter({ selectedCategory, onChange }) {
-  const { categories, categoriesLoading } = useProducts();
+  const { data: categories = [], isLoading: categoriesLoading } = useGetCategoriesQuery();
   const [isOpen, setIsOpen] = useState(true);
 
   return (

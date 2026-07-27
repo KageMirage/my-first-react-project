@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-// 1. Импортируем Redux хуки и экшены/селекторы
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleCart } from '../../data/allData/redux/addData/cartSlice';
 import { selectTotalCount } from '../../data/allData/redux/addData/cartSelectors';
+import { selectFavoritesCount } from '../../data/allData/redux/addData/favoritesSlice';
 
 import logo from '../../assets/svg/logo.svg';
 import favorite from '../svg/favorite.svg';
@@ -15,13 +15,11 @@ import leave from '../../assets/svg/leave.svg';
 function Header() {
     const [isOpen, setIsOpen] = useState(false);
     
-    // 2. Инициализируем dispatch и забираем данные из Redux
     const dispatch = useDispatch();
     
-    // Если селектора нет, можно так: 
-    // const cartItems = useSelector((state) => state.cart.cartItems);
-    // const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
     const totalCount = useSelector(selectTotalCount);
+    // Используем готовый селектор
+    const favoriteCount = useSelector(selectFavoritesCount);
 
     const handleOpenCart = () => {
         dispatch(toggleCart(true));
@@ -47,7 +45,7 @@ function Header() {
     };
 
     return (
-        <header className="relative z-50 border-b bg-[#F9F1E3] py-4 shadow-sm border-black/5 font-sans">
+        <header className="fixed top-0 left-0 w-full z-50 border-b bg-[#F9F1E3] py-4 shadow-sm border-black/5 font-sans">
             <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
 
                 <div className="shrink-0">
@@ -70,10 +68,17 @@ function Header() {
 
                 <div className="flex items-center space-x-6">
                     <div className="hidden items-center space-x-6 md:flex">
-                        <Link to="/favorite" className="transition-opacity hover:opacity-75">
+                        {/* Избранное */}
+                        <Link to="/favorite" className="relative transition-opacity hover:opacity-75">
                             <img src={favorite} alt="Favorite" className="h-6 w-6" />
+                            {favoriteCount > 0 && (
+                                <span className="absolute -top-1.5 -right-2 bg-[#600000] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                                    {favoriteCount}
+                                </span>
+                            )}
                         </Link>
 
+                        {/* Корзина */}
                         <button
                             type="button"
                             onClick={handleOpenCart}
@@ -124,7 +129,9 @@ function Header() {
                             >
                                 Корзина {totalCount > 0 && `(${totalCount})`}
                             </button>
-                            <Link to="/favorite" onClick={() => setIsOpen(false)} className="border-b border-black/20 py-4">Избранное</Link>
+                            <Link to="/favorite" onClick={() => setIsOpen(false)} className="border-b border-black/20 py-4">
+                                Избранное {favoriteCount > 0 && `(${favoriteCount})`}
+                            </Link>
                         </nav>
                     </div>
                 </>

@@ -1,12 +1,10 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-// 1. Импортируем Redux dispatch, selector и экшены
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../../../data/allData/redux/addData/cartSlice.jsx';
-import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice.jsx
+import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice.jsx'
 
-// 2. Импортируем RTK Query хук вместо устаревшего useProducts
 import { useGetFilteredProductsQuery } from '../../../data/allData/products';
 import { ProductSectionSkeleton } from '../../sceleton/ProductSkeleton.jsx';
 
@@ -19,7 +17,6 @@ import cartIcon from '../../../assets/svg/cartIcon.svg';
 function Section3({ productCategory = 2 }) {
     const dispatch = useDispatch();
 
-    // Достаем список избранного из Redux Store
     const favoriteItems = useSelector((state) => state.favorites?.items || []);
 
     const [addedIds, setAddedIds] = useState({});
@@ -29,14 +26,11 @@ function Section3({ productCategory = 2 }) {
     const fallbackImages = [img1, img2, img3, img4];
     const categoryId = typeof productCategory === 'object' ? productCategory?.id : productCategory;
 
-    // 3. Загружаем данные через RTK Query
     const { data: rawData, isLoading: loading, error } = useGetFilteredProductsQuery({ category: categoryId || 2 });
 
-    // Приводим полученные данные к массиву и берем первые 4 товара
     const productsArray = Array.isArray(rawData) ? rawData : rawData?.results || [];
     const displayedProducts = productsArray.slice(0, 4);
 
-    // Добавление товара в корзину
     const handleAddToCart = (product) => {
         dispatch(addToCart({ product, quantity: 1 }));
 
@@ -46,12 +40,10 @@ function Section3({ productCategory = 2 }) {
         }, 1000);
     };
 
-    // Переключение избранного
     const handleToggleFavorite = (product) => {
         dispatch(toggleFavorite(product));
     };
 
-    // Проверка наличия товара в избранном
     const checkIsFavorite = (productId) => {
         return favoriteItems.some((item) => String(item.id) === String(productId));
     };
@@ -81,7 +73,6 @@ function Section3({ productCategory = 2 }) {
         <section className="bg-[#FDF4E3] px-4 md:px-10 py-10 md:py-16 text-[#1a1a1a] font-sans">
             <h2 className="font-serif text-3xl md:text-4xl mb-6 md:mb-10 pl-2">Новинки</h2>
 
-            {/* ЕСЛИ ИДЕТ ЗАГРУЗКА — ПОКАЗЫВАЕМ СКЕЛЕТОНЫ */}
             {loading ? (
                 <ProductSectionSkeleton count={4} />
             ) : error ? (

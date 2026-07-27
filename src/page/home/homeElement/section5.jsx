@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-
-// 1. Импортируем Redux dispatch, selector и экшены
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../../../data/allData/redux/addData/cartSlice';
-import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice.jsx'; // проверьте путь к слайсу избранного
 
-import { useProducts } from '../../../data/allData/products.jsx';
+import { addToCart } from '../../../data/allData/redux/addData/cartSlice';
+import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice.jsx';
+
 import { ProductSectionSkeleton } from '../../sceleton/ProductSkeleton.jsx';
 
 import img1 from '../../../assets/img/img1.png';
@@ -18,10 +16,7 @@ import cartIcon from '../../../assets/svg/cartIcon.svg';
 function Section5() {
     const dispatch = useDispatch();
     
-    // 2. Достаем список избранного из Redux Store
     const favoriteItems = useSelector((state) => state.favorites?.items || []);
-
-    const { fetchFilteredProducts } = useProducts();
 
     const [saleProducts, setSaleProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,17 +35,26 @@ function Section5() {
             setLoading(true);
             setError(null);
 
-            const { data, error: apiError } = await fetchFilteredProducts({ category: 9 });
+            try {
+                // Прямой запрс к API (категория 9 — акции)
+                const response = await fetch('https://html008.pythonanywhere.com/api/v1/products/?category=9');
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
 
-            if (isMounted) {
-                if (apiError) {
-                    const errorMessage = typeof apiError === 'object' ? JSON.stringify(apiError) : apiError;
-                    setError(errorMessage);
-                } else {
+                const data = await response.json();
+
+                if (isMounted) {
                     const items = data?.results || (Array.isArray(data) ? data : []);
                     setSaleProducts(items.slice(0, 4));
+                    setLoading(false);
                 }
-                setLoading(false);
+            } catch (err) {
+                if (isMounted) {
+                    setError(err.message || 'Не удалось загрузить акционные товары');
+                    setLoading(false);
+                }
             }
         }
 
@@ -61,7 +65,6 @@ function Section5() {
         };
     }, []);
 
-    // Добавление товара в корзину через Redux
     const handleAddToCart = (product) => {
         dispatch(addToCart({ product, quantity: 1 }));
         
@@ -71,12 +74,10 @@ function Section5() {
         }, 1000);
     };
 
-    // Переключение избранного через Redux
     const handleToggleFavorite = (product) => {
         dispatch(toggleFavorite(product));
     };
 
-    // Проверка наличия товара в избранном
     const checkIsFavorite = (productId) => {
         return favoriteItems.some((item) => String(item.id) === String(productId));
     };

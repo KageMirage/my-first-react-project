@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-// 1. Импортируем хуки Redux и экшены корзины и избранного
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../../../data/allData/redux/addData/cartSlice';
-import { toggleFavorite } from '../../../data/allData/redux/favoriteSlice'; // Проверьте путь к слайсу избранного
+import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice';
 
-import { useProducts } from '../../../data/allData/products.jsx';
+import { useGetFilteredProductsQuery } from '../../../data/allData/products';
 
 import img1 from '../../../assets/img/img1.png';
 import img2 from '../../../assets/img/img2.png';
@@ -17,53 +16,25 @@ function PassersbyCategory({ productCategory = 8 }) {
   const { id: currentProductId } = useParams();
   const dispatch = useDispatch();
 
-  // 2. Получаем список избранного из Redux store
   const favoriteItems = useSelector((state) => state.favorites?.items || []);
 
-  const { fetchFilteredProducts } = useProducts();
-
-  const [displayedProducts, setDisplayedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const [activeIndex, setActiveIndex] = useState(0);
-  const [addedIds, setAddedIds] = useState({}); // Для индикации добавления
+  const [addedIds, setAddedIds] = useState({});
   const scrollContainerRef = useRef(null);
 
   const fallbackImages = [img1, img2, img3, img4];
-
   const categoryId = typeof productCategory === 'object' ? productCategory?.id : productCategory;
 
-  useEffect(() => {
-    let isMounted = true;
+  const { data: rawData, isLoading, isError, error } = useGetFilteredProductsQuery(
+    { category: categoryId || 8 },
+    { skip: !categoryId && categoryId !== 0 }
+  );
 
-    async function loadSimilarProducts() {
-      setLoading(true);
-      setError(null);
+  const items = rawData?.results || (Array.isArray(rawData) ? rawData : []);
+  const displayedProducts = items
+    .filter((item) => String(item.id) !== String(currentProductId))
+    .slice(0, 4);
 
-      const { data, error: apiError } = await fetchFilteredProducts({ category: categoryId || 8 });
-
-      if (isMounted) {
-        if (apiError) {
-          const errorMessage = typeof apiError === 'object' ? JSON.stringify(apiError) : apiError;
-          setError(errorMessage);
-        } else {
-          const items = data?.results || (Array.isArray(data) ? data : []);
-          const filtered = items.filter(item => String(item.id) !== String(currentProductId)).slice(0, 4);
-          setDisplayedProducts(filtered);
-        }
-        setLoading(false);
-      }
-    }
-
-    loadSimilarProducts();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [fetchFilteredProducts, categoryId, currentProductId]);
-
-  // Обработчик добавления в корзину
   const handleAddToCart = (product) => {
     dispatch(addToCart({ product, quantity: 1 }));
     setAddedIds((prev) => ({ ...prev, [product.id]: true }));
@@ -72,12 +43,10 @@ function PassersbyCategory({ productCategory = 8 }) {
     }, 1000);
   };
 
-  // Обработчик переключения состояния избранного
   const handleToggleFavorite = (product) => {
     dispatch(toggleFavorite(product));
   };
 
-  // Проверка наличия товара в избранном
   const checkIsFavorite = (productId) => {
     return favoriteItems.some((item) => String(item.id) === String(productId));
   };
@@ -103,21 +72,20 @@ function PassersbyCategory({ productCategory = 8 }) {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="text-center py-12 bg-[#FDF4E3] font-sans text-gray-500">Загрузка похожих товаров...</div>;
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="text-center py-12 bg-[#FDF4E3] font-sans text-red-600 px-4">
-        Ошибка загрузки: {error}
+        Ошибка загрузки: {typeof error === 'object' ? JSON.stringify(error) : error}
       </div>
     );
   }
 
   return (
     <section className="bg-[#FDF4E3] px-4 md:px-10 py-10 md:py-16 text-[#1a1a1a] font-sans">
-      
       <h2 className="font-serif text-3xl md:text-4xl mb-6 md:mb-10 pl-2">
         Похожие товары
       </h2>
@@ -126,7 +94,6 @@ function PassersbyCategory({ productCategory = 8 }) {
         <p className="text-center py-10 text-gray-500">Похожие товары не найдены</p>
       ) : (
         <div className="flex flex-col items-center">
-          
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
@@ -145,7 +112,6 @@ function PassersbyCategory({ productCategory = 8 }) {
                   key={product.id || index}
                   className="group flex flex-col min-w-[85%] sm:min-w-[45%] md:min-w-0 snap-start"
                 >
-                  
                   <div className="relative w-full aspect-3/4 overflow-hidden mb-3.5 bg-gray-100 rounded-sm">
                     <Link to={`/product/${product.id}`} className="block w-full h-full">
                       <img
@@ -205,7 +171,6 @@ function PassersbyCategory({ productCategory = 8 }) {
                   <span className="text-xs md:text-sm text-gray-500 font-light">
                     {brand}
                   </span>
-
                 </div>
               );
             })}
@@ -224,7 +189,6 @@ function PassersbyCategory({ productCategory = 8 }) {
               />
             ))}
           </div>
-
         </div>
       )}
     </section>

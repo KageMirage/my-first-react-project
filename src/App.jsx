@@ -24,8 +24,8 @@ function App() {
           <Route path="/favorite" element={<Favoryte />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           
-          <Route path="*" element={<ErrorDefault />} />
         </Route>
+          <Route path="*" element={<ErrorDefault />} />
       </Routes>
     </Suspense>
   );

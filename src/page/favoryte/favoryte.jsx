@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-// 1. Импортируем хуки Redux и экшены
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../../data/allData/redux/addData/cartSlice';
-import { toggleFavorite } from '../../data/allData/redux/favoriteSlice'; // проверьте путь к слайсу избранного
+
+import {
+  toggleFavorite,
+  selectFavoriteItems,
+} from '../../data/allData/redux/addData/favoritesSlice';
 
 import img1 from '../../assets/img/img1.png';
 import img2 from '../../assets/img/img2.png';
@@ -17,11 +20,9 @@ const fallbackImages = [img1, img2, img3, img4];
 function Favorites() {
   const dispatch = useDispatch();
 
-  // 2. Получаем список товаров в избранном из Redux Store
-  const favorites = useSelector((state) => state.favorites?.items || []);
+  const favorites = useSelector(selectFavoriteItems);
   const [addedIds, setAddedIds] = useState({});
 
-  // Добавление товара в корзину через Redux
   const handleAddToCart = (product) => {
     dispatch(addToCart({ product, quantity: 1 }));
     setAddedIds((prev) => ({ ...prev, [product.id]: true }));
@@ -30,7 +31,6 @@ function Favorites() {
     }, 1000);
   };
 
-  // Удаление/переключение товара в избранном через Redux
   const handleToggleFavorite = (product) => {
     dispatch(toggleFavorite(product));
   };
@@ -70,8 +70,8 @@ function Favorites() {
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
                       onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = defaultFallback;
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = defaultFallback; // ИСПРАВЛЕНО ЗДЕСЬ
                       }}
                     />
                   </Link>
@@ -111,7 +111,7 @@ function Favorites() {
                 </div>
 
                 <span className="text-xs md:text-sm text-gray-500 font-light">
-                  {product.country || "Stone Island"}
+                  {product.title || product.country || "Stone Island"}
                 </span>
               </div>
             );

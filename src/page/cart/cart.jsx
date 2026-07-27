@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-// 1. Импортируем Redux хуки и созданные слайсы
 import { useDispatch, useSelector } from 'react-redux';
 import {
   toggleCart,
   updateQuantity,
   removeFromCart,
   clearCart,
-  checkoutCart, // Раскомментируйте, если отправляете асинхронный checkout на сервер
+  checkoutCart,
 } from '../../data/allData/redux/addData/cartSlice';
 
 import img1 from '../../assets/img/img1.png';
@@ -20,12 +19,10 @@ const fallbackImages = [img1, img2, img3, img4];
 function CartDrawer() {
   const dispatch = useDispatch();
 
-  // 2. Получаем данные из Redux стора
   const { cartItems, isCartOpen, loading } = useSelector((state) => state.cart);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Блокировка скролла страницы при открытой корзине
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = 'hidden';
@@ -38,7 +35,6 @@ function CartDrawer() {
     };
   }, [isCartOpen]);
 
-  // Сброс экрана успеха при закрытии корзины
   useEffect(() => {
     if (!isCartOpen) {
       setIsSubmitted(false);
@@ -52,11 +48,6 @@ function CartDrawer() {
   };
 
   const handleCheckout = async () => {
-    // Если в cartSlice вы используете асинхронный checkoutCart:
-    // const result = await dispatch(checkoutCart());
-    // if (checkoutCart.fulfilled.match(result)) { setIsSubmitted(true); }
-
-    // Локальное оформление заказа:
     setIsSubmitted(true);
     dispatch(clearCart());
   };
@@ -86,7 +77,6 @@ function CartDrawer() {
             </button>
           </div>
 
-          {/* Контент: Сообщение об успехе / Пустая корзина / Список товаров */}
           {isSubmitted ? (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
               <div className="w-16 h-16 bg-[#5b0000]/10 text-[#5b0000] rounded-full flex items-center justify-center text-3xl font-bold">
@@ -142,7 +132,6 @@ function CartDrawer() {
                       </div>
 
                       <div className="flex justify-between items-end">
-                        {/* Изменение количества товара */}
                         <div className="flex items-center border border-[#222222]/40 px-2 py-0.5 gap-3 text-xs">
                           <button
                             type="button"
@@ -175,7 +164,6 @@ function CartDrawer() {
                           </button>
                         </div>
 
-                        {/* Удаление товара из корзины */}
                         <button
                           type="button"
                           onClick={() => dispatch(removeFromCart(item.id))}
@@ -192,7 +180,6 @@ function CartDrawer() {
           )}
         </div>
 
-        {/* Кнопка оформления заказа */}
         {!isSubmitted && cartItems.length > 0 && (
           <div className="pt-6 mt-auto border-t border-[#222222]/10">
             <button

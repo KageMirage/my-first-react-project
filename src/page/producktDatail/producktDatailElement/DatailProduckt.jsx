@@ -2,11 +2,9 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
-// Экшены из слайсов
 import { addToCart, updateQuantity, removeFromCart } from '../../../data/allData/redux/addData/cartSlice';
-import { toggleFavorite } from '../../../data/allData/redux/favoriteSlice';
+import { toggleFavorite } from '../../../data/allData/redux/addData/favoritesSlice';
 
-// RTK Query хэндлер
 import { useGetProductByIdQuery } from '../../../data/allData/products';
 
 import defaultImg from '../../../assets/img/img2.png';
@@ -15,10 +13,8 @@ function DetailProduct() {
   const { id } = useParams();
   const dispatch = useDispatch();
 
-  // 1. Загрузка товара через RTK Query
   const { data: product, isLoading: loading, error } = useGetProductByIdQuery(id);
 
-  // 2. Достаем данные из Redux Store
   const cartItems = useSelector((state) => state.cart?.cartItems || []);
   const favoriteItems = useSelector((state) => state.favorites?.items || []);
 
@@ -49,20 +45,15 @@ function DetailProduct() {
   const country = product.country || 'США';
   const description = product.description || 'Стильная и универсальная модель.';
 
-  // Проверка на Избранное
   const isFav = favoriteItems.some((item) => String(item.id) === String(product.id));
 
-  // Поиск товара в корзине
   const cartItem = cartItems.find((item) => String(item.id) === String(product.id));
   const currentQuantity = cartItem ? cartItem.quantity : 0;
 
-  // Обработчик управления количеством
   const handleIncrease = () => {
     if (cartItem) {
-      // КЛЮЧЕВОЙ МОМЕНТ: Передаем productId
       dispatch(updateQuantity({ productId: product.id, quantity: currentQuantity + 1 }));
     } else {
-      // КЛЮЧЕВОЙ МОМЕНТ: Передаем { product, quantity }
       dispatch(addToCart({ product, quantity: 1 }));
     }
   };
